@@ -1,0 +1,6 @@
+.env
+example_bot.py
+*.log
+__pycache__/
+*.json
+credentials.json
