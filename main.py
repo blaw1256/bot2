@@ -134,7 +134,7 @@ async def sell(ctx):
     await auth.send(f"{name}, {int(price)}, {desc}")
     item = [name,price,desc]
     #getting the info of the item
-
+ 
 
     sheets.add_item(length,item)
     # f = open('shop.txt','a')

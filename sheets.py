@@ -6,7 +6,7 @@ scopes = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
-creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+creds = Credentials.from_service_account_file("credential.json", scopes=scopes)
 client = gspread.authorize(creds)
 sheet_id = "1Adk7-3qF98jTOL43Iq5-Hz9z02ytTWII2vHl8-5_8HY"
 sheet = client.open_by_key(sheet_id)
