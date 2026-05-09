@@ -1,47 +1,85 @@
 import discord
-from discord.ext import commands
+from discord import app_commands
 import logging 
 import os
 import webserver
 from dotenv import load_dotenv
-import asyncio
 import math
 import sheets
+import asyncio
 
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
+MY_GUILD = discord.Object(id=os.getenv('DB_GUILD_ID'))
 
 
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+#handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+class MyClient(discord.Client):
+    # Suppress error on the User attribute being None since it fills up later
+    user: discord.ClientUser
+
+    def __init__(self, *, intents: discord.Intents):
+        super().__init__(intents=intents)
+        # A CommandTree is a special type that holds all the application command
+        # state required to make it work. This is a separate class because it
+        # allows all the extra state to be opt-in.
+        # Whenever you want to work with application commands, your tree is used
+        # to store and work with them.
+        # Note: When using commands.Bot instead of discord.Client, the bot will
+        # maintain its own tree instead.
+        self.tree = app_commands.CommandTree(self)
+
+    # In this basic example, we just synchronize the app commands to one guild.
+    # Instead of specifying a guild to every command, we copy over our global commands instead.
+    # By doing so, we don't have to wait up to an hour until they are shown to the end-user.
+    async def setup_hook(self):
+        # This copies the global commands over to your guild.
+        self.tree.copy_global_to(guild=MY_GUILD)
+        await self.tree.sync(guild=MY_GUILD)
 
 
-mainshop = []
+intents = discord.Intents.default()
+bot = MyClient(intents=intents)
 
-items = sheets.get_all_values()
-for item in items:
-    if item == ['name', 'price', 'desc', 'id', 'stock']:
-        continue
-    else:
-        item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
-        mainshop.append(item)
-
-length = len(mainshop)
 
 @bot.event
 async def on_ready():
-    #sheets.add_shop() 
-    print("WARPS Shop Bot is now running.") 
- 
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print('------')
 
 
-@bot.command()
-async def shop(ctx):
+@bot.tree.command()
+async def hello(interaction: discord.Interaction):
+    """Says hello!"""
+    await interaction.channel.send(f'Hi, {interaction.user.mention}')
+
+@bot.tree.command()
+async def buy(interaction: discord.Interaction, message:str):
+    if message.isdigit():
+        #do the id buy
+        print("not string")
+        #print(sheets.id_find(message))
+    else:
+        #do it based off name
+        print(message)
+    sheets.update_ids()
+    await interaction.channel.send('Done')
+
+@bot.tree.command()
+async def sell(interaction, name:str, price:int, desc:str, stock:str):
+    item = name,price,desc, stock
+    length=9
+    sheets.add_item(length,item)
+    await interaction.channel.send("Item Added to Shop")
+
+
+@bot.tree.command()
+async def shop(interaction):
 
     mainshop = []
 
@@ -52,15 +90,6 @@ async def shop(ctx):
         else:
             item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
             mainshop.append(item)
-
-     #f = open('shop.txt','r')  
-    # for line in f:
-    #     line = line.strip()
-    #     line = line.split(' , ')                                                          
-    #     line[2] = line[2].replace('\\n','\n')                                             LEGACY CODE, IGNORE
-    #     item = {'name':line[0],'price':line[1],'desc':line[2]}
-    #     mainshop.append(item)
-    #f.close()
 
     global length
     length = len(mainshop)
@@ -83,16 +112,16 @@ async def shop(ctx):
         em.add_field(name=name, value=f" Price: {price} \n Stock: {stock} \n Description: \n{desc}", inline=False)
     # making the embed pages for the shop
 
-    message =  await ctx.send(content=f"Page {cur_page+1}/{pages}:", embed=emlist[0])
+    message =  await interaction.channel.send(content=f"Page {cur_page+1}/{pages}:", embed=emlist[0])
     # getting the message object for editing and reacting
-
-    await message.add_reaction("◀️")
-    await message.add_reaction("▶️")
-    #adding reactions to change pages
 
     def check(reaction, user):
         return str(reaction.emoji) in ["◀️", "▶️"]
         # This makes sure nobody except the command sender can interact with the "menu"
+
+    await message.add_reaction("◀️")
+    await message.add_reaction("▶️")
+    #adding reactions to change pages
 
     while True:
         try:
@@ -118,51 +147,5 @@ async def shop(ctx):
             print("no")
         #     break
             # ending the loop if user doesn't react after x seconds
-
-@bot.command()
-async def sell(ctx):
-    auth = ctx.author
-    def check(m):
-        return m.author == auth
-    await auth.send('Name of Item:')
-    name2 = await bot.wait_for('message', check=check)
-    name = name2.content
-    await auth.send('How many are you selling?')
-    stock2 = await bot.wait_for('message', check=check)
-    stock = stock2.content
-    await auth.send('Price you are selling it for:')
-    price2 = await bot.wait_for('message', check=check)
-    price = price2.content
-    await auth.send(f'Description of effects:')
-    desc2 = await bot.wait_for('message', check=check)
-    desc = desc2.content
-    await auth.send(f"{name}, {int(price)}, {desc}")
-    item = [name,price,desc,stock]
-    #getting the info of the item
- 
-
-    sheets.add_item(length,item)
-    # f = open('shop.txt','a')
-    # f.write('\n')
-    # f.write(f"{name} , {2*int(price)} , {desc}")              LEGACY CODE   
-    # f.close()
-    # sheets.add_shop()
-    await auth.send("Done!")
-    await ctx.send("Item Added to Shop")
-    #adding to 
-
-
-@bot.command()
-async def buy(ctx,message):
-    if message.isdigit():
-        #do the id buy
-        print("not string")
-        #print(sheets.id_find(message))
-    else:
-        #do it based off name
-        print(message)
-    sheets.update_ids()
-    await ctx.send('Done')
-  
 #webserver.keep_alive()
-bot.run(token, log_handler=handler, log_level=logging.DEBUG)
+bot.run(token)
