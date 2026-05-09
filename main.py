@@ -13,6 +13,15 @@ load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 MY_GUILD = discord.Object(id=os.getenv('DB_GUILD_ID'))
 
+mainshop = []
+
+items = sheets.get_all_values()
+for item in items:
+    item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
+    mainshop.append(item)
+
+global length
+length = len(mainshop)
 
 #handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 intents = discord.Intents.default()
@@ -73,7 +82,7 @@ async def buy(interaction: discord.Interaction, message:str):
 @bot.tree.command()
 async def sell(interaction, name:str, price:int, desc:str, stock:str):
     item = name,price,desc, stock
-    length=9
+    global length
     sheets.add_item(length,item)
     await interaction.channel.send("Item Added to Shop")
 
@@ -85,11 +94,8 @@ async def shop(interaction):
 
     items = sheets.get_all_values()
     for item in items:
-        if item == ['name', 'price', 'desc', 'id', 'stock']:
-            continue
-        else:
-            item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
-            mainshop.append(item)
+        item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
+        mainshop.append(item)
 
     global length
     length = len(mainshop)

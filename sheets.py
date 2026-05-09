@@ -14,7 +14,9 @@ sheet = client.open_by_key(sheet_id)
 worksheet = sheet.sheet1
 
 def get_all_values():
-    return worksheet.get_all_values()
+    ids = len(worksheet.col_values(4))
+    cell_list = worksheet.range(f'A2:D{ids}')
+    return worksheet.get_all_values(f'A2:E{ids}')
 
 def add_item(length,item):
     worksheet.update_cell(length+1,1,item[0])
