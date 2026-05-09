@@ -144,7 +144,7 @@ async def sell(ctx):
     sheets.add_item(length,item)
     # f = open('shop.txt','a')
     # f.write('\n')
-    # f.write(f"{name} , {2*int(price)} , {desc}")              LEGACY CODE 
+    # f.write(f"{name} , {2*int(price)} , {desc}")              LEGACY CODE  
     # f.close()
     # sheets.add_shop()
     await auth.send("Done!")
