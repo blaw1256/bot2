@@ -47,7 +47,21 @@ def add_item(length,item):
     worksheet.update_cell(length+1,2,item[1])
     worksheet.update_cell(length+1,3,item[2])
     worksheet.update_cell(length+1,4,length-1)
+    worksheet.update_cell(length+1, 5, item[3])
     # return item
     
+def update_ids():
+    ids = len(worksheet.col_values(4))
+    cell_list = worksheet.range(f'D2:D{ids}')
+    for index, cell in enumerate(cell_list):
+        cell.value = index+1
+    worksheet.update_cells(cell_list)
+
+def id_find(message):
+    cell = worksheet.find(message, in_column=4)
+    row = cell.row
+    name = worksheet.get(f"A{row}")
+    return name[0][0]
+
 # values_list = worksheet.row_values(1)
 # print(values_list)

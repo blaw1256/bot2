@@ -8,6 +8,7 @@ import asyncio
 import math
 import sheets
 
+
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 
@@ -24,10 +25,10 @@ mainshop = []
 
 items = sheets.get_all_values()
 for item in items:
-    if item == ['name', 'price', 'desc', 'id', '', '']:
+    if item == ['name', 'price', 'desc', 'id', 'stock']:
         continue
     else:
-        item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2]}
+        item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
         mainshop.append(item)
 
 length = len(mainshop)
@@ -46,10 +47,10 @@ async def shop(ctx):
 
     items = sheets.get_all_values()
     for item in items:
-        if item == ['name', 'price', 'desc', 'id']:
+        if item == ['name', 'price', 'desc', 'id', 'stock']:
             continue
         else:
-            item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2]}
+            item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
             mainshop.append(item)
 
      #f = open('shop.txt','r')  
@@ -78,7 +79,8 @@ async def shop(ctx):
         price = item['price']
         desc = item['desc']
         id = item['id']
-        em.add_field(name=name, value=f"Price: {price} \n Shop ID: {id} \n Description: \n{desc}", inline=False)
+        stock = item['stock']
+        em.add_field(name=name, value=f" Price: {price} \n Stock: {stock} \n Description: \n{desc}", inline=False)
     # making the embed pages for the shop
 
     message =  await ctx.send(content=f"Page {cur_page+1}/{pages}:", embed=emlist[0])
@@ -122,17 +124,20 @@ async def sell(ctx):
     auth = ctx.author
     def check(m):
         return m.author == auth
-    await auth.send('name')
+    await auth.send('Name of Item:')
     name2 = await bot.wait_for('message', check=check)
     name = name2.content
-    await auth.send('Price:')
+    await auth.send('How many are you selling?')
+    stock2 = await bot.wait_for('message', check=check)
+    stock = stock2.content
+    await auth.send('Price you are selling it for:')
     price2 = await bot.wait_for('message', check=check)
     price = price2.content
-    await auth.send(f'desc')
+    await auth.send(f'Description of effects:')
     desc2 = await bot.wait_for('message', check=check)
     desc = desc2.content
     await auth.send(f"{name}, {int(price)}, {desc}")
-    item = [name,price,desc]
+    item = [name,price,desc,stock]
     #getting the info of the item
  
 
@@ -145,7 +150,19 @@ async def sell(ctx):
     await auth.send("Done!")
     await ctx.send("Item Added to Shop")
     #adding to 
-    
 
-webserver.keep_alive()
+
+@bot.command()
+async def buy(ctx,message):
+    if message.isdigit():
+        #do the id buy
+        print("not string")
+        #print(sheets.id_find(message))
+    else:
+        #do it based off name
+        print(message)
+    sheets.update_ids()
+    await ctx.send('Done')
+ 
+#webserver.keep_alive()
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
