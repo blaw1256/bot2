@@ -177,5 +177,8 @@ async def shop(interaction):
             print("time broken")
         #     break
             # ending the loop if user doesn't react after x seconds
-#webserver.keep_alive()
+
+
+
+webserver.keep_alive()
 bot.run(token)
