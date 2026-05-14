@@ -13,15 +13,26 @@ load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 MY_GUILD = discord.Object(id=os.getenv('DB_GUILD_ID'))
 
-mainshop = []
+mainshop = {}
+count = 0
 
 items = sheets.get_all_values()
 for item in items:
-    item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
-    mainshop.append(item)
+    item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4], 'tier':int(item[5])}
+    tier = item['tier']
+    if tier in mainshop.keys():
+        mainshop[tier].append(item)
+        count+=1
+    else:
+        mainshop[tier] = []
+        mainshop[tier].append({'name': f'Tier {tier}'})
+        mainshop[tier].append(item)
+        count +=2
 
 global length
-length = len(mainshop)
+length = count - len(mainshop.keys())
+
+
 
 #handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 intents = discord.Intents.default()
@@ -70,28 +81,26 @@ async def on_ready():
 @bot.tree.command()
 async def buy(interaction: discord.Interaction, item_name:str, amount:int):
     message = item_name
-    if message.isdigit():
-        #do the id buy
-        print("not string")
-        #print(sheets.id_find(message))
-    else:
-        #do it based off name
-        message = message.lower()
-        cell = sheets.string_find(message)
-        # print(cell)
-        # print(cell.col)
-        # print(cell.value)
-        # print(cell.row)
-        if cell != None:
-            outcome = sheets.stock_reduce(cell,amount)
-            if outcome == 'error':
-                await interaction.response.send_message('Failed: Tried to buy more than there is in stock.',ephemeral=True)
-            else:
-                sheets.update_ids()
-                await interaction.response.send_message('Transaction successful.', ephemeral=True)
-                await interaction.channel.send(f'Sold {cell.value} X {amount} to {interaction.user.mention}!')
+    #do it based off name
+    message = message.lower()
+    cell = sheets.string_find(message)
+    # print(cell)
+    # print(cell)
+    # print(cell.col)
+    # print(cell.value)
+    # print(cell.row)
+    if cell != None:
+        outcome = sheets.stock_reduce(cell,amount)
+        if outcome == ' stock error':
+            await interaction.response.send_message('Failed: Tried to buy more than there is in stock.',ephemeral=True)
+        elif outcome == 'tier error':
+            await interaction.response.send_message('Item not found.', ephemeral=True)
         else:
-            await interaction.response.send_message('Item not found.',ephemeral=True)
+            sheets.update_ids()
+            await interaction.response.send_message('Transaction successful.', ephemeral=True)
+            await interaction.channel.send(f'Sold {cell.value} X {amount} to {interaction.user.mention}!')
+    else:
+        await interaction.response.send_message('Item not found.',ephemeral=True)
 
     # sheets.update_ids()
     # await interaction.channel.send('Sold!')
@@ -114,32 +123,47 @@ async def sell(interaction, name:str, price:int, desc:str, stock:str):
 @bot.tree.command()
 async def shop(interaction):
 
-    mainshop = []
+    mainshop = {}
+    count = 0
 
     items = sheets.get_all_values()
     for item in items:
-        item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4]}
-        mainshop.append(item)
+        item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4], 'tier':int(item[5])}
+        tier = item['tier']
+        if tier in mainshop.keys():
+            mainshop[tier].append(item)
+            count+=1
+        else:
+            mainshop[tier] = []
+            mainshop[tier].append({'name': f'Tier {tier}'})
+            mainshop[tier].append(item)
+            count +=2
 
-    global length
-    length = len(mainshop)
     emlist=[]
     cur_page = 0
-    pages = math.ceil(len(mainshop)/10)
+    pages = math.ceil(count/10)
 
     for index in range(pages):
         em=discord.Embed(title='Shop', type='article')
         emlist.append(em)
 
-    for index,item in enumerate(mainshop):
-        page = math.floor(index/10)
-        em = emlist[page]
-        name = item['name']
-        price = item['price']
-        desc = item['desc']
-        id = item['id']
-        stock = item['stock']
-        em.add_field(name=name, value=f" Price: {price} \n Stock: {stock} \n Description: \n{desc}", inline=False)
+    index = 0
+    for key in mainshop.keys():
+        if key != 0:
+            for item in mainshop[key]:
+                page = math.floor(index/10)
+                em = emlist[page]
+                index += 1
+                name = item['name']
+                if name in ['Tier 1', 'Tier 2']:
+                    em.add_field(name=name, inline=False, value=' ')
+                else:
+                    name = item['name']
+                    price = item['price']
+                    desc = item['desc']
+                    stock = item['stock']
+                    em.add_field(name=name, value=f" Price: {price} \n Stock: {stock} \n Description: \n{desc}", inline=False)
+
     # making the embed pages for the shop
 
     message =  await interaction.channel.send(content=f"Page {cur_page+1}/{pages}:", embed=emlist[0])

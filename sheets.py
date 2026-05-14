@@ -15,8 +15,8 @@ worksheet = sheet.sheet1
 
 def get_all_values():
     ids = len(worksheet.col_values(4))
-    cell_list = worksheet.range(f'A2:D{ids}')
-    return worksheet.get_all_values(f'A2:E{ids}')
+    #cell_list = worksheet.range(f'A2:F{ids}')
+    return worksheet.get_all_values(f'A2:F{ids}')
 
 
 
@@ -25,7 +25,8 @@ def add_item(length,item):
     worksheet.update_cell(length+1,2,item[1])
     worksheet.update_cell(length+1,3,item[2])
     worksheet.update_cell(length+1,4,length)
-    worksheet.update_cell(length+1, 5, item[3])
+    worksheet.update_cell(length+1,5, item[3])
+    worksheet.update_cell(length+1,6, 0)
     # return item
     
 
@@ -55,13 +56,16 @@ def string_find(message):
 
 def stock_reduce(cell,amount):
     row = cell.row
+    tier = int(worksheet.cell(row,6).value)
+    if tier < 1:
+        return 'tier error'
     stock = worksheet.cell(row,5).value
     if stock == 'Unlimited':
         return 'swag'
     else:
         stock = int(stock)
         if stock < amount:
-            return 'error'
+            return 'stock error'
         elif stock-amount >= 1:
             worksheet.update_cell(row,5,stock-amount)
             return 'all good'
