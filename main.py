@@ -62,29 +62,53 @@ async def on_ready():
     print('------')
 
 
-@bot.tree.command()
-async def hello(interaction: discord.Interaction):
-    """Says hello!"""
-    await interaction.channel.send(f'Hi, {interaction.user.mention}')
+# @bot.tree.command()
+# async def hello(interaction: discord.Interaction):
+#     """Says hello!"""
+#     await interaction.channel.send(f'Hi, {interaction.user.mention}')
 
 @bot.tree.command()
-async def buy(interaction: discord.Interaction, message:str):
+async def buy(interaction: discord.Interaction, item_name:str, amount:int):
+    message = item_name
     if message.isdigit():
         #do the id buy
         print("not string")
         #print(sheets.id_find(message))
     else:
         #do it based off name
-        print(message)
-    sheets.update_ids()
-    await interaction.channel.send('Done')
+        message = message.lower()
+        cell = sheets.string_find(message)
+        # print(cell)
+        # print(cell.col)
+        # print(cell.value)
+        # print(cell.row)
+        if cell != None:
+            outcome = sheets.stock_reduce(cell,amount)
+            if outcome == 'error':
+                await interaction.response.send_message('Failed: Tried to buy more than there is in stock.',ephemeral=True)
+            else:
+                sheets.update_ids()
+                await interaction.response.send_message('Transaction successful.', ephemeral=True)
+                await interaction.channel.send(f'Sold {cell.value} X {amount} to {interaction.user.mention}!')
+        else:
+            await interaction.response.send_message('Item not found.',ephemeral=True)
+
+    # sheets.update_ids()
+    # await interaction.channel.send('Sold!')
+
+
+
 
 @bot.tree.command()
 async def sell(interaction, name:str, price:int, desc:str, stock:str):
     item = name,price,desc, stock
     global length
     sheets.add_item(length,item)
-    await interaction.channel.send("Item Added to Shop")
+    length += 1
+    await interaction.response.send_message('Item(s) Added to Shop',ephemeral=True)
+    # await interaction.channel.send("Item Added to Shop")
+
+
 
 
 @bot.tree.command()
@@ -150,7 +174,7 @@ async def shop(interaction):
                 # removes reactions if the user tries to go forward on the last page or
                 # backwards on the first page
         except asyncio.TimeoutError:
-            print("no")
+            print("time broken")
         #     break
             # ending the loop if user doesn't react after x seconds
 #webserver.keep_alive()
