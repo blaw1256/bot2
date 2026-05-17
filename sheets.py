@@ -15,19 +15,19 @@ worksheet = sheet.sheet1
 
 def get_all_values():
     ids = len(worksheet.col_values(4))
-    #cell_list = worksheet.range(f'A2:F{ids}')
     return worksheet.get_all_values(f'A2:F{ids}')
+    #this is simple, just returns all the relevant data as a list of rows. note gives colums A to F which is what we care about
 
 
 
 def add_item(length,item):
-    worksheet.update_cell(length+1,1,item[0])
-    worksheet.update_cell(length+1,2,item[1])
-    worksheet.update_cell(length+1,3,item[2])
-    worksheet.update_cell(length+1,4,length)
-    worksheet.update_cell(length+1,5, item[3])
-    worksheet.update_cell(length+1,6, 0)
-    # return item
+    worksheet.update_cell(length+1,1,item[0])       #name column
+    worksheet.update_cell(length+1,2,item[1])       #price column
+    worksheet.update_cell(length+1,3,item[2])       #description column
+    worksheet.update_cell(length+1,4,length)        #id column - note this does not take in a value from item
+    worksheet.update_cell(length+1,5, item[3])      #stock column
+    worksheet.update_cell(length+1,6, 0)            #tier column - automatically makes it 0 so it does not appear on sheet
+    #this takes the lsit "item" and adds its values to the correct part of the sheet
     
 
 
@@ -37,27 +37,21 @@ def update_ids():
     for index, cell in enumerate(cell_list):
         cell.value = index+1
     worksheet.update_cells(cell_list)
-
-
-
-def id_find(message):
-    cell = worksheet.find(message, in_column=4)
-    row = cell.row
-    name = worksheet.get(f"A{row}")
-    return name[0][0]
+    #this just goes through and updates the id column in the event of row deletion
 
 
 
 def string_find(message):
     cell = worksheet.find(message,case_sensitive=False)
-    return cell
-
+    price = worksheet.cell(cell.row, 2)
+    return cell, price
+    #returns the cell matching the name and the price
 
 
 def stock_reduce(cell,amount):
     row = cell.row
     tier = int(worksheet.cell(row,6).value)
-    if tier < 1:
+    if tier == 0:
         return 'tier error'
     stock = worksheet.cell(row,5).value
     if stock == 'Unlimited':
@@ -72,3 +66,4 @@ def stock_reduce(cell,amount):
         else:
             worksheet.delete_rows(row)
             return 'all good'
+    #first this checks to see if the tier of the item isnt 0 and therefore unavailable for purchase, then it checks if the stock is Unlimited,, if it isnt then it reduces the stock. if there isnt enough stock then it returns an error

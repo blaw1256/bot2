@@ -12,6 +12,9 @@ import asyncio
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 MY_GUILD = discord.Object(id=os.getenv('DB_GUILD_ID'))
+owner_id = os.getenv('B_ID')
+#this pulls the token for the bot to run, the guild id (server id) for the server u wanna run it in and the id of the owner from enviromental variables
+
 
 mainshop = {}
 count = 0
@@ -31,13 +34,14 @@ for item in items:
 
 global length
 length = count - len(mainshop.keys())
+# literally all this does is get the right length variable for use in the sell function later
 
 
 
 #handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+# intents = discord.Intents.default()
+# intents.message_content = True
+# intents.members = True
 
 class MyClient(discord.Client):
     # Suppress error on the User attribute being None since it fills up later
@@ -65,45 +69,35 @@ class MyClient(discord.Client):
 
 intents = discord.Intents.default()
 bot = MyClient(intents=intents)
-
+#this creates the bot
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
+#notifies when its ready
 
-
-# @bot.tree.command()
-# async def hello(interaction: discord.Interaction):
-#     """Says hello!"""
-#     await interaction.channel.send(f'Hi, {interaction.user.mention}')
 
 @bot.tree.command()
 async def buy(interaction: discord.Interaction, item_name:str, amount:int):
     message = item_name
-    #do it based off name
     message = message.lower()
-    cell = sheets.string_find(message)
-    # print(cell)
-    # print(cell)
-    # print(cell.col)
-    # print(cell.value)
-    # print(cell.row)
+    cell,price = sheets.string_find(message)
+    #returns the cell which houses the name of the item
+
     if cell != None:
         outcome = sheets.stock_reduce(cell,amount)
         if outcome == ' stock error':
-            await interaction.response.send_message('Failed: Tried to buy more than there is in stock.',ephemeral=True)
+            await interaction.response.send_message('Failed: Tried to buy more than there is in stock.',ephemeral=True)                     #not enough stock
         elif outcome == 'tier error':
-            await interaction.response.send_message('Item not found.', ephemeral=True)
+            await interaction.response.send_message('Item not found.', ephemeral=True)                                                      #item is at tier 0 ie unapproved
         else:
-            sheets.update_ids()
+            sheets.update_ids()                                                                                                             #updates the displayed ids in the event of a row deletion ie stock running out
             await interaction.response.send_message('Transaction successful.', ephemeral=True)
-            await interaction.channel.send(f'Sold {cell.value} X {amount} to {interaction.user.mention}!')
+            await interaction.channel.send(f'Sold {cell.value} X {amount} for {int(price.value) * amount} to {interaction.user.mention}!')  #confirmation of successful transaction
     else:
-        await interaction.response.send_message('Item not found.',ephemeral=True)
+        await interaction.response.send_message('Item not found.',ephemeral=True)                                                           #requesting an item that doesnt exist
 
-    # sheets.update_ids()
-    # await interaction.channel.send('Sold!')
 
 
 
@@ -114,8 +108,11 @@ async def sell(interaction, name:str, price:int, desc:str, stock:str):
     global length
     sheets.add_item(length,item)
     length += 1
+    #adding the item to the sheet and then increasing length to compensate
     await interaction.response.send_message('Item(s) Added to Shop',ephemeral=True)
-    # await interaction.channel.send("Item Added to Shop")
+    member = await interaction.guild.fetch_member(owner_id)
+    await member.send('New item has been sold to the shop.')
+    #this sends a message to the owner (Brendan rn) notifying them there is an item in the shop
 
 
 
@@ -130,7 +127,9 @@ async def shop(interaction):
     for item in items:
         item = {'name':item[0], 'price': item[1], 'id':item[3], 'desc':item[2], 'stock':item[4], 'tier':int(item[5])}
         tier = item['tier']
-        if tier in mainshop.keys():
+        if tier == 0:       #note that this skips any item whos tier is 0
+            continue
+        elif tier in mainshop.keys():
             mainshop[tier].append(item)
             count+=1
         else:
@@ -138,6 +137,7 @@ async def shop(interaction):
             mainshop[tier].append({'name': f'Tier {tier}'})
             mainshop[tier].append(item)
             count +=2
+        #this gets all the items and adds them to a dictionary where the key is their tier and value is a list that starts with the name of the tier
 
     emlist=[]
     cur_page = 0
@@ -146,32 +146,36 @@ async def shop(interaction):
     for index in range(pages):
         em=discord.Embed(title='Shop', type='article')
         emlist.append(em)
+    #this sets up the Embeds needed to run the shop, if you want more/less pages adjust the number in pages and the number for page 5 lines below this one
 
     index = 0
     for key in mainshop.keys():
-        if key != 0:
             for item in mainshop[key]:
                 page = math.floor(index/10)
                 em = emlist[page]
                 index += 1
                 name = item['name']
+                #determines what page this should go on based on the amount of items already used
                 if name in ['Tier 1', 'Tier 2']:
                     em.add_field(name=name, inline=False, value=' ')
+                elif name == 'Tier -1':
+                    em.add_field(name='Player Sold Items', inline=False, value=' ')
+                #sets up the blank Tier X blocks
                 else:
                     name = item['name']
                     price = item['price']
                     desc = item['desc']
                     stock = item['stock']
                     em.add_field(name=name, value=f" Price: {price} \n Stock: {stock} \n Description: \n{desc}", inline=False)
+                #adds the item to the embed
 
-    # making the embed pages for the shop
 
     message =  await interaction.channel.send(content=f"Page {cur_page+1}/{pages}:", embed=emlist[0])
     # getting the message object for editing and reacting
 
     def check(reaction, user):
         return str(reaction.emoji) in ["◀️", "▶️"]
-        # This makes sure nobody except the command sender can interact with the "menu"
+        # This makes sure the only emojis it will react to are those arrows
 
     await message.add_reaction("◀️")
     await message.add_reaction("▶️")
@@ -183,15 +187,17 @@ async def shop(interaction):
             # waiting for a reaction to be added - times out after x seconds, 60 in this
             # example
 
-            if str(reaction.emoji) == "▶️" and cur_page != pages:
+            if str(reaction.emoji) == "▶️" and cur_page+1 != pages:
                 cur_page += 1
                 await message.edit(embed=emlist[cur_page],content=f"Page {cur_page+1}/{pages}:")
                 await message.remove_reaction(reaction, user)
+                #increases the page by 1 and displays it if it exists
 
             elif str(reaction.emoji) == "◀️" and cur_page > 0:
                 cur_page -= 1
                 await message.edit(embed=emlist[cur_page],content=f"Page {cur_page+1}/{pages}:")
                 await message.remove_reaction(reaction, user)
+                #decreases the page by 1 and displays it if it exists
 
             else:
                 await message.remove_reaction(reaction, user)
@@ -204,5 +210,5 @@ async def shop(interaction):
 
 
 
-webserver.keep_alive()
-bot.run(token)
+webserver.keep_alive()      #this is here to trick render into thinking this is a website so it will run it
+bot.run(token)              #runs the bot
