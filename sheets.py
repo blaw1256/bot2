@@ -67,3 +67,9 @@ def stock_reduce(cell,amount):
             worksheet.delete_rows(row)
             return 'all good'
     #first this checks to see if the tier of the item isnt 0 and therefore unavailable for purchase, then it checks if the stock is Unlimited,, if it isnt then it reduces the stock. if there isnt enough stock then it returns an error
+
+
+def update_tier(item):
+    cell = worksheet.find(item['name'],case_sensitive=False)
+    row = cell.row
+    worksheet.update_cell(row, 6, -1)
