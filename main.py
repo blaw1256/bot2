@@ -225,7 +225,7 @@ async def shop(interaction:discord.Interaction):
             # ending the loop if user doesn't react after x seconds
 
 @bot.tree.command()
-@app_commands.checks.has_role('Auth')
+@app_commands.checks.has_role('RPG Officer')
 async def approve_items(interaction:discord.Interaction):
     items = sheets.get_all_values()
     unapproved = []
